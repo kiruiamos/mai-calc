@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calculator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: #eef2f7; font: 16px system-ui, sans-serif; }
+    .calculator { width: min(320px, 94vw); padding: 16px; border-radius: 16px; background: #1f2937; box-shadow: 0 12px 32px #0003; }
+    #display { width: 100%; height: 70px; margin-bottom: 12px; padding: 12px; border: 0; border-radius: 8px; background: #f9fafb; color: #111827; text-align: right; font: 2rem ui-monospace, monospace; }
+    .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    button { min-height: 54px; border: 0; border-radius: 8px; background: #374151; color: white; font-size: 1.15rem; cursor: pointer; }
+    button:hover { filter: brightness(1.18); }
+    .operator { background: #2563eb; }
+    .clear { background: #b91c1c; }
+    .equals { grid-row: span 2; background: #059669; }
+    .zero { grid-column: span 2; }
+  </style>
+</head>
+<body>
+  <main class="calculator" aria-label="Calculator">
+    <output id="display" aria-live="polite">0</output>
+    <div class="keys">
+      <button class="clear" data-action="clear">AC</button>
+      <button data-action="delete">DEL</button>
+      <button class="operator" data-value="/">÷</button>
+      <button class="operator" data-value="*">×</button>
+      <button data-value="7">7</button><button data-value="8">8</button><button data-value="9">9</button>
+      <button class="operator" data-value="-">−</button>
+      <button data-value="4">4</button><button data-value="5">5</button><button data-value="6">6</button>
+      <button class="operator" data-value="+">+</button>
+      <button data-value="1">1</button><button data-value="2">2</button><button data-value="3">3</button>
+      <button class="equals" data-action="equals">=</button>
+      <button class="zero" data-value="0">0</button><button data-value=".">.</button>
+    </div>
+  </main>
+  <script>
+    const display = document.querySelector('#display');
+    const keys = document.querySelector('.keys');
+    let current = '0';
+    let stored = null;
+    let operator = null;
+    let startNewNumber = false;
+
+    function render() { display.textContent = current; }
+
+    function enterDigit(digit) {
+      if (current === 'Error' || startNewNumber) {
+        current = digit === '.' ? '0.' : digit;
+        startNewNumber = false;
+      } else if (digit === '.') {
+        if (!current.includes('.')) current += '.';
+      } else {
+        current = current === '0' ? digit : current + digit;
+      }
+    }
+
+    function chooseOperator(nextOperator) {
+      const value = Number(current);
+      if (operator && !startNewNumber) calculate();
+      stored = Number(current);
+      operator = nextOperator;
+      startNewNumber = true;
+    }
+
+    function calculate() {
+      if (!operator || stored === null) return;
+      const right = Number(current);
+      let result;
+      if (operator === '+') result = stored + right;
+      if (operator === '-') result = stored - right;
+      if (operator === '*') result = stored * right;
+      if (operator === '/') result = stored / right;
+      current = Number.isFinite(result) ? String(Number(result.toPrecision(10))) : 'Error';
+      stored = null;
+      operator = null;
+      startNewNumber = true;
+    }
+
+    keys.addEventListener('click', event => {
+      const button = event.target.closest('button');
+      if (!button) return;
+      const { action, value } = button.dataset;
+      if (action === 'clear') {
+        current = '0'; stored = null; operator = null; startNewNumber = false;
+      } else if (action === 'delete') {
+        if (current === 'Error' || startNewNumber) current = '0';
+        else current = current.length > 1 ? current.slice(0, -1) : '0';
+      } else if (action === 'equals') calculate();
+      else if ('+-*/'.includes(value)) chooseOperator(value);
+      else enterDigit(value);
+      render();
+    });
+
+    document.addEventListener('keydown', event => {
+      if (/^[0-9.]$/.test(event.key)) enterDigit(event.key);
+      else if ('+-*/'.includes(event.key)) chooseOperator(event.key);
+      else if (event.key === 'Enter' || event.key === '=') calculate();
+      else if (event.key === 'Escape') {
+        current = '0'; stored = null; operator = null; startNewNumber = false;
+      } else if (event.key === 'Backspace') {
+        current = current.length > 1 ? current.slice(0, -1) : '0';
+      } else return;
+      render();
+    });
+  </script>
+</body>
+</html>
